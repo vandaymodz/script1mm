@@ -1,0 +1,318 @@
+local uis = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+-- Tạo UI chính
+local screenGui = Instance.new("ScreenGui", game.CoreGui)
+screenGui.Name = "VANDAYMODZ_UI"
+
+-- Biến toàn cục
+local dragging = false
+local minimized = false
+
+-- Thanh tiêu đề
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(0, 400, 0, 30)
+titleBar.Position = UDim2.new(0.5, -200, 0.3, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+titleBar.Parent = screenGui
+titleBar.Active = true
+titleBar.Draggable = true
+
+local titleLabel = Instance.new("TextLabel", titleBar)
+titleLabel.Text = "VANDAYMODZ"
+titleLabel.Size = UDim2.new(1, -40, 1, 0)
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+
+-- Nút thu nhỏ
+local minimizeBtn = Instance.new("TextButton", titleBar)
+minimizeBtn.Text = "-"
+minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+minimizeBtn.Position = UDim2.new(1, -35, 0, 0)
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+
+-- Khung menu chính
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0, 400, 0, 250)
+menu.Position = UDim2.new(0, 0, 1, 0)
+menu.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+menu.Parent = titleBar
+
+-- Khung tab bên trái
+local tabFrame = Instance.new("Frame", menu)
+tabFrame.Size = UDim2.new(0, 100, 1, 0)
+tabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+-- Khung nội dung bên phải
+local contentFrame = Instance.new("Frame", menu)
+contentFrame.Size = UDim2.new(1, -100, 1, 0)
+contentFrame.Position = UDim2.new(0, 100, 0, 0)
+contentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+contentFrame.ClipsDescendants = true
+
+-- Hàm tạo toggle
+local function createToggle(parent, text, default, callback)
+    local toggleFrame = Instance.new("Frame", parent)
+    toggleFrame.Size = UDim2.new(1, -20, 0, 25)
+    toggleFrame.BackgroundTransparency = 1
+    
+    local toggleLabel = Instance.new("TextLabel", toggleFrame)
+    toggleLabel.Text = text
+    toggleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+    toggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleLabel.BackgroundTransparency = 1
+    toggleLabel.Font = Enum.Font.Gotham
+    
+    local toggleButton = Instance.new("TextButton", toggleFrame)
+    toggleButton.Size = UDim2.new(0.3, 0, 1, 0)
+    toggleButton.Position = UDim2.new(0.7, 0, 0, 0)
+    toggleButton.Text = default and "ON" or "OFF"
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.BackgroundColor3 = default and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        local state = toggleButton.Text == "OFF"
+        toggleButton.Text = state and "ON" or "OFF"
+        toggleButton.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
+        if callback then callback(state) end
+    end)
+end
+
+-- Hàm tạo slider (sẽ tiếp tục ở phần 2)
+-- Tiếp tục hàm tạo slider
+local function createSlider(parent, text, min, max, default, callback)
+    local sliderFrame = Instance.new("Frame", parent)
+    sliderFrame.Size = UDim2.new(1, -20, 0, 50)
+    sliderFrame.BackgroundTransparency = 1
+    
+    local sliderLabel = Instance.new("TextLabel", sliderFrame)
+    sliderLabel.Text = text
+    sliderLabel.Size = UDim2.new(1, 0, 0, 20)
+    sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sliderLabel.BackgroundTransparency = 1
+    
+    local valueLabel = Instance.new("TextLabel", sliderFrame)
+    valueLabel.Text = tostring(default)
+    valueLabel.Size = UDim2.new(0, 40, 0, 20)
+    valueLabel.Position = UDim2.new(1, -40, 0, 0)
+    valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    valueLabel.BackgroundTransparency = 1
+    
+    local sliderBack = Instance.new("Frame", sliderFrame)
+    sliderBack.Size = UDim2.new(1, 0, 0, 10)
+    sliderBack.Position = UDim2.new(0, 0, 0, 30)
+    sliderBack.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    
+    local sliderFill = Instance.new("Frame", sliderBack)
+    sliderFill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+    sliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+    
+    local sliderButton = Instance.new("TextButton", sliderBack)
+    sliderButton.Size = UDim2.new(0, 20, 0, 20)
+    sliderButton.Position = UDim2.new((default - min)/(max - min), 0, 0, -5)
+    sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    
+    sliderButton.MouseButton1Down:Connect(function()
+        local function updateSlider()
+            local x = math.clamp((uis:GetMouseLocation().X - sliderBack.AbsolutePosition.X) / sliderBack.AbsoluteSize.X, 0, 1)
+            local value = math.floor(min + (max - min) * x)
+            sliderFill.Size = UDim2.new(x, 0, 1, 0)
+            sliderButton.Position = UDim2.new(x, 0, 0, -5)
+            valueLabel.Text = tostring(value)
+            if callback then callback(value) end
+        end
+        
+        updateSlider()
+        local conn
+        conn = uis.InputChanged:Connect(function()
+            if uis:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                updateSlider()
+            else
+                conn:Disconnect()
+            end
+        end)
+    end)
+end
+
+-- Hàm tạo tab
+local function createTab(name)
+    local tabBtn = Instance.new("TextButton", tabFrame)
+    tabBtn.Size = UDim2.new(1, 0, 0, 40)
+    tabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tabBtn.Text = name
+    tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tabBtn.Font = Enum.Font.Gotham
+    
+    local content = Instance.new("ScrollingFrame", contentFrame)
+    content.Size = UDim2.new(1, 0, 1, 0)
+    content.BackgroundTransparency = 1
+    content.ScrollBarThickness = 5
+    content.Visible = false
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    
+    local layout = Instance.new("UIListLayout", content)
+    layout.Padding = UDim.new(0, 5)
+    
+    tabBtn.MouseButton1Click:Connect(function()
+        for _, c in pairs(contentFrame:GetChildren()) do
+            if c:IsA("ScrollingFrame") then c.Visible = false end
+        end
+        content.Visible = true
+    end)
+    
+    return content
+end
+
+-- Tạo các tab chính
+local aimTab = createTab("AIM")
+local espTab = createTab("ESP")
+local miscTab = createTab("MISC")
+
+-- Nội dung tab AIM
+createToggle(aimTab, "Aimbot", false, function(state) end)
+createToggle(aimTab, "Aim Silent", false, function(state) end)
+createToggle(aimTab, "Bypass", false, function(state) end)
+createSlider(aimTab, "FOV Circle", 10, 500, 100, function(value) end)
+createSlider(aimTab, "FOV Angle", 1, 360, 90, function(value) end)
+
+-- Nội dung tab ESP (sẽ tiếp tục ở phần 3)
+-- Nội dung tab ESP
+createToggle(espTab, "ESP Line", false, function(state)
+    -- Code ESP Line tại đây
+end)
+
+createToggle(espTab, "ESP Box", false, function(state)
+    -- Code ESP Box tại đây
+end)
+
+createToggle(espTab, "Name + Health", false, function(state)
+    -- Code Name + Health tại đây
+end)
+
+createToggle(espTab, "ESP Distance", false, function(state)
+    -- Code ESP Distance tại đây
+end)
+
+createToggle(espTab, "Chams", false, function(state)
+    -- Code Chams tại đây
+end)
+
+-- ESP Counter
+local espCounterFrame = Instance.new("Frame", espTab)
+espCounterFrame.Size = UDim2.new(1, -20, 0, 80)
+espCounterFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+local playerLabel = Instance.new("TextLabel", espCounterFrame)
+playerLabel.Text = "PLAYER: 0"
+playerLabel.Size = UDim2.new(1, 0, 0, 25)
+playerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+playerLabel.BackgroundTransparency = 1
+playerLabel.Font = Enum.Font.GothamBold
+
+local teamLabel = Instance.new("TextLabel", espCounterFrame)
+teamLabel.Text = "TEAM: 0"
+teamLabel.Size = UDim2.new(1, 0, 0, 20)
+teamLabel.Position = UDim2.new(0, 0, 0, 35)
+teamLabel.TextColor3 = Color3.fromRGB(0, 200, 0)
+teamLabel.BackgroundTransparency = 1
+
+local enemyLabel = Instance.new("TextLabel", espCounterFrame)
+enemyLabel.Text = "ENEMY: 0"
+enemyLabel.Size = UDim2.new(1, 0, 0, 20)
+enemyLabel.Position = UDim2.new(0, 0, 0, 55)
+enemyLabel.TextColor3 = Color3.fromRGB(200, 0, 0)
+enemyLabel.BackgroundTransparency = 1
+
+-- Cập nhật ESP Counter
+game:GetService("RunService").RenderStepped:Connect(function()
+    local players = game:GetService("Players"):GetPlayers()
+    local localPlayer = game:GetService("Players").LocalPlayer
+    local teamCount = 0
+    local enemyCount = 0
+    
+    for _, player in pairs(players) do
+        if player ~= localPlayer then
+            if player.Team == localPlayer.Team then
+                teamCount = teamCount + 1
+            else
+                enemyCount = enemyCount + 1
+            end
+        end
+    end
+    
+    playerLabel.Text = "PLAYER: "..#players
+    teamLabel.Text = "TEAM: "..teamCount
+    enemyLabel.Text = "ENEMY: "..enemyCount
+end)
+
+-- Tab MISC (sẽ tiếp tục ở phần 4)
+-- Nội dung tab MISC
+createSlider(miscTab, "Speed Hack", 1, 100, 16, function(value)
+    local humanoid = game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if humanoid then humanoid.WalkSpeed = value end
+end)
+
+createToggle(miscTab, "Bunny Hop", false, function(state)
+    if state then
+        local conn
+        conn = game:GetService("RunService").RenderStepped:Connect(function()
+            local humanoid = game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    end
+end)
+
+createToggle(miscTab, "Anti AFK", false, function(state)
+    if state then
+        local vu = game:GetService("VirtualUser")
+        game:GetService("Players").LocalPlayer.Idled:Connect(function()
+            vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            wait(1)
+            vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+        end)
+    end
+end)
+
+-- Hoàn thiện giao diện
+local function showTab(tab)
+    for _, child in pairs(contentFrame:GetChildren()) do
+        if child:IsA("ScrollingFrame") then child.Visible = false end
+    end
+    tab.Visible = true
+end
+
+-- Kích hoạt các tab
+local aimTabBtn = tabFrame:FindFirstChild("AIM")
+local espTabBtn = tabFrame:FindFirstChild("ESP")
+local miscTabBtn = tabFrame:FindFirstChild("MISC")
+
+if aimTabBtn then aimTabBtn.MouseButton1Click:Connect(function() showTab(aimTab) end) end
+if espTabBtn then espTabBtn.MouseButton1Click:Connect(function() showTab(espTab) end) end
+if miscTabBtn then miscTabBtn.MouseButton1Click:Connect(function() showTab(miscTab) end) end
+
+-- Hiển thị tab AIM mặc định
+showTab(aimTab)
+
+-- Phím tắt ẩn/hiện UI
+uis.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        minimized = not minimized
+        menu.Visible = not minimized
+        minimizeBtn.Text = minimized and "+" or "-"
+    end
+end)
+
+-- Thông báo khi load
+local notif = Instance.new("TextLabel", screenGui)
+notif.Text = "VANDAYMODZ Đã Sẵn Sàng! (RightShift để ẩn/hiện)"
+notif.Size = UDim2.new(0, 400, 0, 30)
+notif.Position = UDim2.new(0.5, -200, 0.1, 0)
+notif.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+notif.TextColor3 = Color3.fromRGB(255, 255, 255)
+notif.Font = Enum.Font.GothamBold
+
+delay(5, function() notif:Destroy() end)
