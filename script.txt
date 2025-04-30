@@ -316,3 +316,48 @@ notif.TextColor3 = Color3.fromRGB(255, 255, 255)
 notif.Font = Enum.Font.GothamBold
 
 delay(5, function() notif:Destroy() end)
+-- Đảm bảo tất cả tab được tạo đúng cách
+wait(1) -- Chờ 1 frame để load hết UI
+
+-- Hiển thị tab AIM mặc định
+for _, child in pairs(contentFrame:GetChildren()) do
+    if child:IsA("ScrollingFrame") then
+        child.Visible = false
+    end
+end
+aimTab.Visible = true
+
+-- Kích hoạt chức năng chuyển tab
+local function updateTabColors(selected)
+    for _, tab in pairs(tabFrame:GetChildren()) do
+        if tab:IsA("TextButton") then
+            tab.BackgroundColor3 = tab == selected and Color3.fromRGB(60,60,60) or Color3.fromRGB(40,40,40)
+            tab.TextColor3 = tab == selected and Color3.fromRGB(0,200,255) or Color3.fromRGB(255,255,255)
+        end
+    end
+end
+
+-- Kết nối sự kiện cho các tab
+for _, tabName in pairs({"AIM", "ESP", "MISC"}) do
+    local tabBtn = tabFrame:FindFirstChild(tabName)
+    if tabBtn then
+        tabBtn.MouseButton1Click:Connect(function()
+            local tabContent = contentFrame:FindFirstChild(tabName.."Tab") or contentFrame:FindFirstChild(tabName.."_Content")
+            if tabContent then
+                for _, child in pairs(contentFrame:GetChildren()) do
+                    if child:IsA("ScrollingFrame") then
+                        child.Visible = false
+                    end
+                end
+                tabContent.Visible = true
+                updateTabColors(tabBtn)
+            end
+        end)
+    end
+end
+
+-- Active tab AIM đầu tiên
+local firstTab = tabFrame:FindFirstChild("AIM") or tabFrame:FindFirstChild("ESP") or tabFrame:FindFirstChild("MISC")
+if firstTab then
+    firstTab.MouseButton1Click:Wait()
+end
